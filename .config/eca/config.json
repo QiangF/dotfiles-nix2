@@ -1,22 +1,15 @@
 {
     "$schema": "https://eca.dev/config.json",
-    "defaultModel": "nubank-anthropic/opus-4.6",
+    "defaultModel": "nubank-anthropic/opus-4.7",
+    "includeParentAgentsFiles": true,
     "providers": {
         "nubank": {
             "api": "openai-responses",
             "url": "${env:NULITELLM_API_URL}",
             "key": "${env:NULITELLM_API_KEY}",
             "fetchModels": false,
-            "models": {"gpt-5.2": {},
-                       "gpt-5.2-xhigh": {
-                           "modelName": "openai/gpt-5.2",
-                           "extraPayload": {"reasoning": {"effort": "xhigh"}}
-                       },
-                       "gpt-5.2-codex": {"extraPayload": {"reasoning": { "effort": "high" }}},
-                       "gpt-5.3-codex": {},
-                       "gpt-5-nano": {},
-                       "gpt-5-mini": {},
-                       "gpt-4.1": {}}
+            "models": {"openai/gpt-5.3-codex": {},
+                       "openai/gpt-5.5": {}}
         }, 
         "nubank-anthropic": {
             "api": "anthropic",
@@ -40,6 +33,9 @@
                 },
                 "opus-4.6": {
                     "modelName": "anthropic/claude-opus-4-6"
+                },
+                "opus-4.7": {
+                    "modelName": "anthropic/claude-opus-4-7"
                 }
             }
         },
@@ -53,6 +49,13 @@
                     "modelName": "inference/nubank-custom-model-original"
                 }
             }
+        },
+        "aitunnel": {
+            "api": "openai-chat",
+            "url": "https://api.aitunnel.ru/v1",
+            "key": "REDACTED",
+            "fetchModels": false,
+            "models": {"qwen3.5-397b-a17b": {}}
         }
         // "openrouter": {
         //     "api": "openai-chat",
@@ -82,8 +85,12 @@
         //     }
         // }
     },
-    "completion": {"model": "nubank/gpt-5.3-codex"},
-    "rewrite": {"model": "nubank/gpt-5.3-codex"},
+    "completion": {
+        // "model": "nubank/openai/gpt-5.3-codex",
+        "model": "github-copilot/gemini-3-flash-preview",
+        "responseEncoding": "udiff"
+    },
+    "rewrite": {"model": "nubank/openai/gpt-5.3-codex"},
     "hooks": {
         "notify-finished": {
             "type": "postRequest",
@@ -141,7 +148,9 @@
         "nubank": {
             "source": "https://github.com/nubank/ai-agents-plugins.git"
         },
-        "install": ["gba-debit-card"]
+        "install": [
+          "glean-mcp"
+        ]
     },
     "remote": {
         "enabled": true,
