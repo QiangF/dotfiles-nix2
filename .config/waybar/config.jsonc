@@ -21,6 +21,7 @@
     "cpu",
     "memory",
     "custom/space",
+    "custom/monitor",
     "bluetooth",
     "pulseaudio",
     "backlight",
@@ -112,6 +113,14 @@
     "interval": 3,
     "format": "{icon} {percentage}",
     "format-icons": ["󰘚"]
+  },
+  "custom/monitor": {
+    "format": "{}",
+    "return-type": "json",
+    "interval": 3,
+    "exec": "~/.config/waybar/monitor.sh",
+    "on-click": "exec ~/.config/waybar/monitor.sh toggle",
+    "tooltip": true,
   },
   "bluetooth": {
     "format": "󰂯",

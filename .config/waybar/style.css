@@ -59,6 +59,15 @@ window#waybar {
 #pulseaudio { border-top-color: @purple; }
 #pulseaudio.muted { border-top-color: @red; }
 #pulseaudio.bluetooth { color: @cyan; }
+#custom-monitor { border-top-color: @orange; }
+#custom-monitor.mirror { color: @orange; }
+#custom-monitor.extend { color: @cyan; }
+#custom-monitor.hidden {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    min-width: 0;
+}
 #bluetooth { border-top-color: @cyan; }
 #bluetooth.connected { color: @cyan; }
 #battery { border-top-color: @red; }
