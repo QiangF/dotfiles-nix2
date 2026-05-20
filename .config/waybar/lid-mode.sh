@@ -17,7 +17,7 @@ if [ $# -eq 1 ]; then
         kill "$pid" 2>/dev/null
         rm -f "$PIDFILE"
     else
-        systemd-inhibit --what=handle-lid-switch \
+        systemd-inhibit --what=sleep:handle-lid-switch \
             --who="lid-keep-awake" \
             --why="Keep system running on lid close" \
             --mode=block \
