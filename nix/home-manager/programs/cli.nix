@@ -68,5 +68,6 @@
     wmctrl
     xdotool
     xsel
+    xclip
   ];
 }

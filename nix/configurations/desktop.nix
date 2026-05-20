@@ -28,7 +28,7 @@
       pulsemixer
       rofi
       kanshi
-      slurp
+      stable.slurp
       sound-theme-freedesktop
       swaybg
       udiskie
@@ -36,7 +36,9 @@
       transmission_4-gtk
       vlc
       woeusb
-      wf-recorder
+      stable.wf-recorder
+      sweethome3d.application
+      wl-screenrec
       adwaita-icon-theme
     ];
 
