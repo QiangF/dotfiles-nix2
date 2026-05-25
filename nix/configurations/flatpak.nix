@@ -1,8 +1,17 @@
-{ self, ... }:
+{ self, pkgs, ... }:
 
 {
   imports = [
     self.inputs.nix-flatpak.nixosModules.nix-flatpak
+  ];
+
+  # Tiny wrappers so flatpak apps can be launched by their familiar names
+  # (also lets `which stremio` and `.desktop` files referencing `stremio`
+  # find a real binary in PATH).
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "stremio" ''
+      exec ${pkgs.flatpak}/bin/flatpak run com.stremio.Stremio "$@"
+    '')
   ];
 
   services.flatpak = {
