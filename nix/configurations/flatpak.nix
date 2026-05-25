@@ -25,7 +25,7 @@
     packages = [
       # Stremio: shipped as a flatpak so we don't have to build qtwebengine5
       # locally (which used to take hours).
-      "flathub:app/com.stremio.Stremio/x86_64/stable"
+      { appId = "com.stremio.Stremio"; origin = "flathub"; }
     ];
   };
 }
