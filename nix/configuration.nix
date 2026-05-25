@@ -13,6 +13,7 @@ in
       ./configurations/hardware.nix
       ./configurations/desktop.nix
       ./configurations/cli.nix
+      ./configurations/flatpak.nix
       ./configurations/samba.nix
       ./configurations/misc.nix
     ];
@@ -27,7 +28,6 @@ in
 
   nixpkgs.config.permittedInsecurePackages = [
     "libsoup-2.74.3"
-    "qtwebengine-5.15.19"
   ];
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";

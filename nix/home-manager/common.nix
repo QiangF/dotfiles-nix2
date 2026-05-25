@@ -40,7 +40,8 @@ in {
       sass
       sassc
       srt-to-vtt-cl
-      # stremio # slow to build
+      # stremio: installed as a flatpak in ../configurations/flatpak.nix
+      #          (native build pulls qtwebengine5 which takes hours)
       teamviewer
       pulseaudioFull
       p7zip

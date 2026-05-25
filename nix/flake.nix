@@ -21,6 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nubank.url = "github:nubank/nixpkgs/master";
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
     vpn = {
       url = "github:yuezk/GlobalProtect-openconnect/v2.3.8";
     };
