@@ -29,14 +29,18 @@
         ]
       },
       "locked": {
-        "lastModified": 1779992994,
-        "narHash": "sha256-jdmTvPPu1biwl+4nc2UX5k9pnp058GfCUb2THvFWKWY=",
-        "path": "/home/greg/dev/GlobalProtect-openconnect",
-        "type": "path"
+        "lastModified": 1780017134,
+        "narHash": "sha256-5DSuoqV9zROJNEaCO/NoFeGQ3F5slj8T3PtlUySRPPg=",
+        "owner": "ericdallo",
+        "repo": "GlobalProtect-openconnect",
+        "rev": "45a03b69777e3f058f3666c95ee0c8e0db67ff7a",
+        "type": "github"
       },
       "original": {
-        "path": "/home/greg/dev/GlobalProtect-openconnect",
-        "type": "path"
+        "owner": "ericdallo",
+        "ref": "main",
+        "repo": "GlobalProtect-openconnect",
+        "type": "github"
       }
     },
     "hardware": {

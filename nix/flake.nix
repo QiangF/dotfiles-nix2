@@ -21,12 +21,10 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
     # GlobalProtect VPN client (CLI build of yuezk/GlobalProtect-openconnect).
-    # Lives in a personal fork so the package recipe / flake plumbing can
-    # be maintained outside this config and eventually PR'd upstream.
-    # Using `path:` for local-checkout development — switch to
-    # `github:ericdallo/GlobalProtect-openconnect/<branch>` once committed.
+    # Personal fork hosts the Nix flake / package recipe so it can evolve
+    # independently of this config (and eventually be PR'd upstream).
     gp-openconnect = {
-      url = "path:/home/greg/dev/GlobalProtect-openconnect";
+      url = "github:ericdallo/GlobalProtect-openconnect/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
