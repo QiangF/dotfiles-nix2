@@ -8,8 +8,10 @@
   programs.git = {
     enable = true;
     package = pkgs.hub;
-    userName = "Eric Dallo";
-    userEmail = "ericdallo06@hotmail.com";
+    settings.user = {
+      name = "Eric Dallo";
+      email = "ericdallo06@hotmail.com";
+    };
     includes = [{ path = "~/.dotfiles/.gitconfig"; }];
 
     ignores = [ ".lsp/.cache" ".clj-kondo/.cache" ".aider*" ];

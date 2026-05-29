@@ -14,7 +14,10 @@
     plantuml
     tektoncd-cli
     stable.yubikey-manager
-    stable.yubikey-personalization-gui
+    # yubikey-personalization-gui was archived upstream and removed from nixpkgs
+    # (2025-06-07). yubikey-manager (above) handles the same workflows for
+    # YubiKey 5 and later. Add `yubioath-flutter` here if a GUI OATH client is
+    # needed.
     scala
     scalafmt
     teleport

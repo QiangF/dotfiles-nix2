@@ -67,7 +67,6 @@
     displayManager.defaultSession = "hyprland";
 
     displayManager.gdm.enable = true;
-    displayManager.gdm.wayland = true;
 
     xserver = {
       enable = true;

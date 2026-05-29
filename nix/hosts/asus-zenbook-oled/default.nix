@@ -3,6 +3,13 @@
 {
   imports = [
     ../../configuration.nix
+    # Hardware quirks from nixos-hardware. No Zenbook UX3405MA-specific
+    # module exists upstream yet, so we compose the generic baselines.
+    # The bespoke i915.force_probe=7d55 below stays — it targets this
+    # machine's specific iGPU PCI ID.
+    self.inputs.hardware.nixosModules.common-cpu-intel
+    self.inputs.hardware.nixosModules.common-pc-laptop
+    self.inputs.hardware.nixosModules.common-pc-laptop-ssd
   ];
 
   home-manager.users.greg = {

@@ -26,7 +26,12 @@ in {
         inherit system;
         config = cfg;
       };
-      vpn = inputs.vpn.packages.${system}.default;
     })
+
+    # GlobalProtect CLI lives in a separate fork-flake. Its overlay
+    # exposes `pkgs.globalprotect-openconnect` (gpclient + gpservice +
+    # gpauth, CLI build, no Tauri GUI). See
+    # /home/greg/dev/GlobalProtect-openconnect/{flake,package}.nix.
+    inputs.gp-openconnect.overlays.default
   ];
 }

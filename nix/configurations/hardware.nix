@@ -34,10 +34,6 @@
     iw
   ];
 
-  nixpkgs.config.packageOverrides = pkgs: {
-    intel-vaapi-driver = pkgs.intel-vaapi-driver.override { enableHybridCodec = true; };
-  };
-
   hardware = {
     enableRedistributableFirmware = true;
 
@@ -52,14 +48,19 @@
       };
     };
 
+    # Intel GPU configuration via nixos-hardware's `common-cpu-intel`
+    # (imported in hosts/asus-zenbook-oled/default.nix). It already adds
+    # intel-vaapi-driver, intel-media-driver, intel-compute-runtime and
+    # the media/compute runtimes to `hardware.graphics.extraPackages`,
+    # so we only declare what nixos-hardware doesn't cover (VDPAU bridges)
+    # and toggle the option for hybrid codec on the VAAPI driver.
+    intelgpu.enableHybridCodec = true;
+
     graphics = {
       enable = true;
       enable32Bit = true;
       extraPackages = with pkgs; [
-        intel-compute-runtime
-        intel-media-driver
         libvdpau-va-gl
-        intel-vaapi-driver
         libva-vdpau-driver
       ];
     };
