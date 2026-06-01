@@ -66,7 +66,23 @@
     libinput.touchpad.naturalScrolling = true;
     displayManager.defaultSession = "hyprland";
 
-    displayManager.gdm.enable = true;
+    # GDM 50 (current nixpkgs) is broken on this machine: its Wayland greeter
+    # never spawns gnome-shell — the journal shows
+    #   gdm-wayland-session: Unable to run session
+    #   GdmDisplay: Session never registered, failing  (x6, then "Giving up")
+    # so the login screen is just a black screen with a blinking cursor.
+    # The i915 GPU stack is fine and the real session is Hyprland (not GNOME),
+    # so use greetd + tuigreet (a lightweight TTY greeter that launches
+    # Hyprland directly, no gnome-shell). Switch back to GDM once upstream
+    # fixes the GDM 50 greeter.
+    # displayManager.gdm.enable = true;
+    greetd = {
+      enable = true;
+      settings.default_session = {
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd Hyprland";
+        user = "greeter";
+      };
+    };
 
     xserver = {
       enable = true;

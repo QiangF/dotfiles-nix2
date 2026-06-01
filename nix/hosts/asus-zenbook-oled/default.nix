@@ -25,6 +25,12 @@ in
     self.inputs.hardware.nixosModules.common-pc-laptop-ssd
   ];
 
+  # home-manager activation refuses to overwrite pre-existing, unmanaged
+  # dotfiles (e.g. ~/.config/nvim/init.lua) and otherwise aborts the WHOLE
+  # activation (home-manager-greg.service fails), leaving the session
+  # unconfigured. Back such files up (.hm-bak) instead of aborting.
+  home-manager.backupFileExtension = "hm-bak";
+
   home-manager.users.greg = {
     imports = [
       ../../home-manager/common.nix
