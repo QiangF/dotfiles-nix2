@@ -16,6 +16,7 @@ in
       ./configurations/flatpak.nix
       ./configurations/samba.nix
       ./configurations/misc.nix
+      ./configurations/zscaler.nix
     ];
 
   home-manager = {

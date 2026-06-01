@@ -26,6 +26,10 @@ in {
         inherit system;
         config = cfg;
       };
+
+      # Zscaler Client Connector (ZTNA). The proprietary payload is supplied
+      # locally via requireFile — only its hash is tracked, never the binaries.
+      zscaler-client = final.callPackage ../pkgs/zscaler-client { };
     })
 
     # GlobalProtect CLI lives in a separate fork-flake. Its overlay
