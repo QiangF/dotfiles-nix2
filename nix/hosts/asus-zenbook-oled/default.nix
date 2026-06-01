@@ -1,5 +1,18 @@
 { config, lib, self, system, ... }:
 
+let
+  # See flake.nix `nixpkgs-kernel`: pin the kernel to the last-good
+  # nixpkgs (linux 6.18.16) to dodge the 6.18.33 i915 Meteor Lake
+  # black-screen regression, while the rest of the system tracks the
+  # updated `nixpkgs`. Only boot.kernelPackages consumes this.
+  kernelPkgs = import self.inputs.nixpkgs-kernel {
+    inherit system;
+    config = {
+      allowUnfree = true;
+      allowBroken = true;
+    };
+  };
+in
 {
   imports = [
     ../../configuration.nix
@@ -33,6 +46,8 @@
   networking.hostName = "gregnix-personal";
 
   boot = {
+    # Pinned kernel (linux 6.18.16) — see the `kernelPkgs` let-binding above.
+    kernelPackages = kernelPkgs.linuxPackages;
     kernelModules = [ "acpi_call" ];
     extraModulePackages = with config.boot.kernelPackages; [ acpi_call ];
     kernelParams = [ "i915.force_probe=7d55" ];
