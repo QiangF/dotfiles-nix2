@@ -66,23 +66,27 @@
     libinput.touchpad.naturalScrolling = true;
     displayManager.defaultSession = "hyprland";
 
-    # GDM 50 (current nixpkgs) is broken on this machine: its Wayland greeter
-    # never spawns gnome-shell — the journal shows
+    # GDM 50 (current nixpkgs) is broken on this machine: its greeter never
+    # spawns gnome-shell — the journal shows
     #   gdm-wayland-session: Unable to run session
     #   GdmDisplay: Session never registered, failing  (x6, then "Giving up")
-    # so the login screen is just a black screen with a blinking cursor.
-    # The i915 GPU stack is fine and the real session is Hyprland (not GNOME),
-    # so use greetd + tuigreet (a lightweight TTY greeter that launches
-    # Hyprland directly, no gnome-shell). Switch back to GDM once upstream
-    # fixes the GDM 50 greeter.
+    # so the login screen is just a black screen. The i915 GPU stack is fine;
+    # it's a GDM/GNOME-50 regression.
+    #
+    # Use SDDM instead: a graphical login with a session chooser. It launches
+    # each session via its .desktop entry, so Hyprland starts through
+    # `start-hyprland` (clearing the "launched without start-hyprland"
+    # warning) and GNOME is selectable too. Switch back to GDM once upstream
+    # fixes its greeter.
     # displayManager.gdm.enable = true;
-    greetd = {
-      enable = true;
-      settings.default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd Hyprland";
-        user = "greeter";
-      };
-    };
+    displayManager.sddm.enable = true;
+
+    # Offer GNOME as a selectable session next to Hyprland. This only
+    # registers the GNOME sessions in the chooser; it does NOT pull in GDM.
+    desktopManager.gnome.enable = true;
+    # GNOME defaults to power-profiles-daemon, which conflicts with the
+    # auto-cpufreq configured on this host. Keep auto-cpufreq; disable ppd.
+    power-profiles-daemon.enable = false;
 
     xserver = {
       enable = true;
@@ -92,7 +96,6 @@
       };
 
       videoDrivers = [ "modesetting" ];
-      # desktopManager.gnome.enable = true;
       desktopManager.xterm.enable = false;
       #displayManager.startx.enable = true;
 
