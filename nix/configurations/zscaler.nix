@@ -25,6 +25,20 @@ let
     gnugrep gnused gawk coreutils util-linux
   ];
 
+  # The daemons also invoke some tools by *absolute* FHS path (e.g.
+  # `/usr/bin/awk` for /etc/os-release parsing), which PATH can't satisfy on
+  # NixOS. Bundle the tools and bind them over /usr/bin, /sbin, /usr/sbin in
+  # each daemon's private mount namespace (contained — no host-wide change).
+  fhsTools = pkgs.buildEnv {
+    name = "zscaler-fhs-tools";
+    paths = daemonPath ++ (with pkgs; [ bash ]);
+  };
+  fhsBinds = [
+    "${fhsTools}/bin:/usr/bin"
+    "${fhsTools}/bin:/sbin"
+    "${fhsTools}/bin:/usr/sbin"
+  ];
+
   # Seed the mutable /opt/zscaler from the immutable store package. Idempotent.
   # Keeps bin/ writable and preserves the runtime-fetched ZSTray + session.
   provision = pkgs.writeShellScript "zscaler-provision" ''
@@ -83,6 +97,7 @@ let
       _down() {
         systemctl --user stop zscaler-tray.service 2>/dev/null || true
         sudo systemctl stop "''${units[@]}" || true
+        sudo systemctl reset-failed "''${units[@]}" 2>/dev/null || true
         # Restore default (no-VPN) DNS: drop Zscaler's resolver overrides.
         sudo systemctl restart systemd-resolved.service || true
         sudo resolvectl flush-caches 2>/dev/null || true
@@ -136,6 +151,7 @@ in
       KillMode = "process";
       Restart = "always";
       RestartSec = "2s";
+      BindReadOnlyPaths = fhsBinds;
     };
   };
 
@@ -149,6 +165,7 @@ in
       ExecStart = "${opt}/bin/zstunnel";
       Type = "simple";
       KillMode = "mixed";
+      BindReadOnlyPaths = fhsBinds;
     };
   };
 
