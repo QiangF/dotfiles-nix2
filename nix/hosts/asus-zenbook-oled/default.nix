@@ -1,5 +1,18 @@
 { config, lib, self, system, ... }:
 
+let
+  # See flake.nix `nixpkgs-kernel`: pin the kernel to the last-good
+  # nixpkgs (linux 6.18.16) to dodge the 6.18.33 i915 Meteor Lake
+  # black-screen regression, while the rest of the system tracks the
+  # updated `nixpkgs`. Only boot.kernelPackages consumes this.
+  kernelPkgs = import self.inputs.nixpkgs-kernel {
+    inherit system;
+    config = {
+      allowUnfree = true;
+      allowBroken = true;
+    };
+  };
+in
 {
   imports = [
     ../../configuration.nix
@@ -11,6 +24,12 @@
     self.inputs.hardware.nixosModules.common-pc-laptop
     self.inputs.hardware.nixosModules.common-pc-laptop-ssd
   ];
+
+  # home-manager activation refuses to overwrite pre-existing, unmanaged
+  # dotfiles (e.g. ~/.config/nvim/init.lua) and otherwise aborts the WHOLE
+  # activation (home-manager-greg.service fails), leaving the session
+  # unconfigured. Back such files up (.hm-bak) instead of aborting.
+  home-manager.backupFileExtension = "hm-bak";
 
   home-manager.users.greg = {
     imports = [
@@ -33,6 +52,8 @@
   networking.hostName = "gregnix-personal";
 
   boot = {
+    # Pinned kernel (linux 6.18.16) — see the `kernelPkgs` let-binding above.
+    kernelPackages = kernelPkgs.linuxPackages;
     kernelModules = [ "acpi_call" ];
     extraModulePackages = with config.boot.kernelPackages; [ acpi_call ];
     kernelParams = [ "i915.force_probe=7d55" ];

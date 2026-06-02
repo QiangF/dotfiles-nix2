@@ -3,6 +3,15 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    # Kernel pin: nixpkgs-unstable currently ships linux 6.18.33, whose
+    # i915 driver black-screens at GDM on this UX3405MA Meteor Lake iGPU
+    # (PCI 7d55). Pin the last-good rev (linux 6.18.16) and use it ONLY
+    # for `boot.kernelPackages`; every other package stays on `nixpkgs`.
+    # Re-point at nixpkgs-unstable (or drop this input) once the upstream
+    # i915 regression is fixed.
+    nixpkgs-kernel.url = "github:NixOS/nixpkgs/e38213b91d3786389a446dfce4ff5a8aaf6012f2";
+
     stable.url = "github:NixOS/nixpkgs/nixos-25.11";
     master.url = "github:NixOS/nixpkgs/master";
     hardware.url = "github:NixOS/nixos-hardware/master";
