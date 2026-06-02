@@ -14,7 +14,11 @@ in {
       in {
       stable = import inputs.stable {
         inherit system;
-        config = cfg;
+        # qtwebengine 5.15 (EOL) is pulled from the stable pin for the Zscaler
+        # ZSTray GUI — current nixpkgs dropped Qt5 WebEngine entirely.
+        config = cfg // {
+          permittedInsecurePackages = [ "qtwebengine-5.15.19" ];
+        };
       };
 
       master = import inputs.master {

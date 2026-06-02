@@ -68,7 +68,7 @@ stdenv.mkDerivation {
 
   src = requireFile {
     name = "zscaler-client-${version}.tar.gz";
-    sha256 = "cb3a5a81c2d652d6c7b21b5b28aff2caf0338c2ef1ba97e45f6d17cad3182dd4";
+    sha256 = "313057fa0b2321328b813f388ccfe97a81e61194d3240129bd48033dc9e1b406";
     message = ''
       The proprietary Zscaler Client Connector payload is required but cannot
       be fetched automatically (obtain the `.run` from your org's Zscaler
@@ -98,6 +98,11 @@ stdenv.mkDerivation {
   # itself; make autoPatchelf look there so the daemons resolve it.
   appendRunpaths = [ "${placeholder "out"}/opt/zscaler/lib" ];
 
+  # Patch ONLY the daemons here. The ZSTray GUI links Qt5 + QtWebEngine (huge,
+  # and qtwebengine5 isn't in this nixpkgs) so it's left as a raw FHS binary and
+  # run via an FHS sandbox in the NixOS module instead of being patchelf'd.
+  dontAutoPatchelf = true;
+
   dontConfigure = true;
   dontBuild = true;
 
@@ -113,6 +118,15 @@ stdenv.mkDerivation {
     cp -a opt "$out/opt"
     chmod -R u+w "$out/opt/zscaler"
     runHook postInstall
+  '';
+
+  # Patchelf the daemons + bundled lib only; ZSTray stays a raw FHS binary.
+  postFixup = ''
+    autoPatchelf \
+      "$out/opt/zscaler/lib/libpacparser.so" \
+      "$out/opt/zscaler/bin/zsaservice" \
+      "$out/opt/zscaler/bin/zstunnel" \
+      "$out/opt/zscaler/bin/zsupdater"
   '';
 
   meta = with lib; {

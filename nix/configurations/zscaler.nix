@@ -39,6 +39,61 @@ let
     "${fhsTools}/bin:/usr/sbin"
   ];
 
+  # ── D-Bus system-bus policy ───────────────────────────────────────────────
+  # The Zscaler components rendezvous over the *system* bus: zsaservice,
+  # zstunnel and ZSTray each *own* a well-known name (com.zscaler.{zsaservice,
+  # ztunnel,ztray}.service) and call one another over it. dbus refuses name
+  # ownership unless a policy explicitly grants it, so without these files
+  # zsaservice can never own com.zscaler.zsaservice.service — and ZSTray then
+  # aborts on launch (SIGABRT) the moment it calls the service:
+  #   GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: ... not activatable
+  # These are the vendor's own policy files from the .deb (generic XML, no
+  # secrets); shipped under share/dbus-1/system.d for services.dbus.packages.
+  dbusPolicy = pkgs.runCommandLocal "zscaler-dbus-policy" { } ''
+    d="$out/share/dbus-1/system.d"
+    install -d "$d"
+    install -m0644 ${pkgs.writeText "com.zscaler.zsaservice.service.conf" ''
+      <!DOCTYPE busconfig PUBLIC
+       "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+       "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+      <busconfig>
+        <policy user="root">
+          <allow own="com.zscaler.zsaservice.service"/>
+          <allow send_destination="com.zscaler.zsaservice.service"/>
+        </policy>
+        <policy context="default">
+          <allow send_interface="com.zscaler.zsaservice.Interface" send_destination="com.zscaler.zsaservice.service"/>
+        </policy>
+      </busconfig>
+    ''} "$d/com.zscaler.zsaservice.service.conf"
+    install -m0644 ${pkgs.writeText "com.zscaler.ztray.service.conf" ''
+      <!DOCTYPE busconfig PUBLIC
+       "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+       "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+      <busconfig>
+        <policy context="default">
+          <allow send_interface="com.zscaler.ztray.Interface" send_destination="com.zscaler.ztray.service"/>
+          <allow own="com.zscaler.ztray.service"/>
+          <allow user="*"/>
+        </policy>
+      </busconfig>
+    ''} "$d/com.zscaler.ztray.service.conf"
+    install -m0644 ${pkgs.writeText "com.zscaler.ztunnel.service.conf" ''
+      <!DOCTYPE busconfig PUBLIC
+       "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+       "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+      <busconfig>
+        <policy user="root">
+          <allow own="com.zscaler.ztunnel.service"/>
+          <allow send_destination="com.zscaler.ztunnel.service"/>
+        </policy>
+        <policy context="default">
+          <allow send_interface="com.zscaler.ztunnel.Interface" send_destination="com.zscaler.ztunnel.service"/>
+        </policy>
+      </busconfig>
+    ''} "$d/com.zscaler.ztunnel.service.conf"
+  '';
+
   # Seed the mutable /opt/zscaler from the immutable store package. Idempotent.
   # Keeps bin/ writable and preserves the runtime-fetched ZSTray + session.
   provision = pkgs.writeShellScript "zscaler-provision" ''
@@ -51,30 +106,50 @@ let
       chmod -R u+w ${opt}/$d
     done
     install -m 0644 ${zscaler}/opt/zscaler/.config.ini ${opt}/.config.ini
-    # Patched daemons (rpath points into the store).
-    for b in zsaservice zstunnel zsupdater; do
+    # Patched daemons (rpath points into the store) + the raw ZSTray GUI
+    # binary (run via the FHS sandbox, so it stays unpatched).
+    for b in zsaservice zstunnel zsupdater ZSTray; do
       install -m 0755 ${zscaler}/opt/zscaler/bin/$b ${opt}/bin/$b
     done
   '';
 
-  # ZSTray is a Qt5/QtWebEngine app fetched at runtime; run it inside an FHS
-  # sandbox so the dynamically-linked binary finds Qt + X/Wayland libs.
-  zstrayFHS = pkgs.buildFHSEnv {
+  # ZSTray is a Qt5 + QtWebEngine app (libQt5WebEngine{Widgets,Core}.so.5,
+  # libgpgme.so.11). qtwebengine5 was dropped from current nixpkgs and gpgme
+  # moved to so.45 — but the `stable` (25.11) pin still has qtwebengine 5.15.x
+  # and gpgme 1.24 (so.11). So build the whole FHS sandbox from `stable` for a
+  # consistent Qt5 userland. LD_LIBRARY_PATH points at the bundled libpacparser.
+  zstrayFHS = pkgs.stable.buildFHSEnv {
     name = "zscaler-zstray";
-    runScript = "${opt}/bin/ZSTray";
+    runScript = pkgs.writeShellScript "zstray-run" ''
+      export LD_LIBRARY_PATH="${opt}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      # ZSTray bundles OpenSSL 1.0.2 with a compiled-in OPENSSLDIR of
+      # /usr/local/ssl (absent on NixOS). Point the standard SSL envs at
+      # NixOS' CA bundle so TLS has a trust store regardless of that path.
+      export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      export SSL_CERT_DIR=/etc/ssl/certs
+      export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+      exec ${opt}/bin/ZSTray "$@"
+    '';
+    # Recreate the binary's compiled-in /usr/local/ssl tree, pointing at the
+    # host CA bundle (resolved inside the sandbox via the /etc/ssl/certs bind).
+    # NB: extraBuildCommands runs in the build tmpdir, so target $out/... .
+    extraBuildCommands = ''
+      mkdir -p "$out/usr/local/ssl"
+      ln -s /etc/ssl/certs                     "$out/usr/local/ssl/certs"
+      ln -s /etc/ssl/certs/ca-certificates.crt "$out/usr/local/ssl/cert.pem"
+      printf '[ default ]\n' > "$out/usr/local/ssl/openssl.cnf"
+    '';
     targetPkgs = p: (with p; [
-      # Qt 5 base set. NOTE: qtwebengine5 was dropped from nixpkgs (EOL). Igor
-      # reported ZSTray needs LibQt5WebEngineWidgets; if this version does too,
-      # we'll pull qtwebengine from the `stable` pin once we have the real
-      # runtime-fetched ZSTray binary to inspect (handled during login testing).
       qt5.qtbase qt5.qtsvg qt5.qtdeclarative qt5.qtwayland
-      # Chromium/Qt runtime deps
-      glib dbus nss nspr fontconfig freetype expat libGL libdrm
+      qt5.qtwebengine qt5.qtwebchannel
+      gpgme              # libgpgme.so.11
+      openssl            # libssl.so.3 / libcrypto.so.3 for Qt5 Network TLS
+      glib dbus dbus-glib nss nspr fontconfig freetype expat libGL libdrm
       alsa-lib libpulseaudio cups pango cairo gdk-pixbuf gtk3
       at-spi2-core libxkbcommon
-    ]) ++ (with p; [
-      libx11 libxcb libxcomposite libxdamage libxext libxfixes libxrandr
-      libxrender libxtst libxi libxcursor libxscrnsaver libxshmfence
+    ]) ++ (with p.xorg; [
+      libX11 libxcb libXcomposite libXdamage libXext libXfixes libXrandr
+      libXrender libXtst libXi libXcursor libXScrnSaver libxshmfence
     ]);
   };
 
@@ -127,6 +202,10 @@ in
   ## normal networking; it is the *default* (no-VPN) state and fully reversible.
   services.resolved.enable = true;
   networking.networkmanager.dns = lib.mkForce "systemd-resolved";
+
+  ##: D-Bus — install the vendor system-bus policy so the components may own
+  ## their well-known names. Without it ZSTray aborts on launch (see dbusPolicy).
+  services.dbus.packages = [ dbusPolicy ];
 
   ##: Provision the mutable /opt/zscaler before the daemons.
   systemd.services.zscaler-provision = {
