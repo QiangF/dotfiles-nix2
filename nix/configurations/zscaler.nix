@@ -19,6 +19,17 @@ let
 
   opt = "/opt/zscaler";
 
+  # Nubank's enterprise-security root CA (Zscaler TLS-inspection root). Kept as
+  # a *local* path on this machine — never vendored into the repo/store. It is
+  # read at runtime by the provision script (guarded by a file test), so a
+  # machine without it still builds. Merged into the client's CA bundle so the
+  # daemons + ZSTray trust Zscaler-intercepted TLS.
+  orgCaCert = "/home/greg/dev/nu/.nu/certificates/zscaler/zscaler-nubank-v1.pem";
+
+  # The CA bundle the client's OpenSSL trusts: NixOS' system bundle plus the
+  # Nubank root (built by `provision`). Lives under mutable /opt/zscaler.
+  caBundle = "${opt}/.config/zcc-ca-bundle.crt";
+
   # Runtime tools the daemons shell out to (DNS/route/NetworkManager glue).
   daemonPath = with pkgs; [
     networkmanager iproute2 iptables systemd procps
@@ -111,6 +122,27 @@ let
     for b in zsaservice zstunnel zsupdater ZSTray; do
       install -m 0755 ${zscaler}/opt/zscaler/bin/$b ${opt}/bin/$b
     done
+    # Things the vendor's install.sh sets up that the daemons/tray expect:
+    #  * device/client-cert dirs (the auth lib loads client certs from here;
+    #    a missing path can make the TLS client context fail to build).
+    #  * .HWInfo — hardware fingerprint ZSTray reads for the enrolment POST.
+    install -d -m 0755 ${opt}/private_key ${opt}/client_cert ${opt}/intermediate_ca
+    if [ ! -f ${opt}/.config/.HWInfo ]; then
+      hw=${opt}/.config/.HWInfo
+      : > "$hw"; chmod 0644 "$hw"
+      printf 'system-uuid : %s\n' "$(dmidecode -s system-uuid 2>/dev/null || true)" >> "$hw"
+      printf 'baseboard-serial-number : %s\n' "$(dmidecode -s baseboard-serial-number 2>/dev/null || true)" >> "$hw"
+      printf 'disk-id : %s\n' "$(df -hP / | awk 'NR==2{print $1}' | xargs -r blkid -s UUID -o value 2>/dev/null || true)" >> "$hw"
+    fi
+    # Trust bundle: NixOS' system CAs + Nubank's root CA (when present locally),
+    # so the client trusts Zscaler-intercepted TLS. Always rebuilt so the path
+    # is valid even without the org cert.
+    cp -f /etc/ssl/certs/ca-certificates.crt ${caBundle}
+    if [ -f ${orgCaCert} ]; then
+      cat ${orgCaCert} >> ${caBundle}
+      install -m 0644 ${orgCaCert} ${opt}/intermediate_ca/zscaler-nubank.crt
+    fi
+    chmod 0644 ${caBundle}
   '';
 
   # ZSTray is a Qt5 + QtWebEngine app (libQt5WebEngine{Widgets,Core}.so.5,
@@ -123,11 +155,11 @@ let
     runScript = pkgs.writeShellScript "zstray-run" ''
       export LD_LIBRARY_PATH="${opt}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       # ZSTray bundles OpenSSL 1.0.2 with a compiled-in OPENSSLDIR of
-      # /usr/local/ssl (absent on NixOS). Point the standard SSL envs at
-      # NixOS' CA bundle so TLS has a trust store regardless of that path.
-      export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      # /usr/local/ssl (absent on NixOS). Point the standard SSL envs at the
+      # provisioned trust bundle (system CAs + Nubank root) so TLS verifies.
+      export SSL_CERT_FILE=${caBundle}
       export SSL_CERT_DIR=/etc/ssl/certs
-      export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+      export CURL_CA_BUNDLE=${caBundle}
       exec ${opt}/bin/ZSTray "$@"
     '';
     # Recreate the binary's compiled-in /usr/local/ssl tree, pointing at the
@@ -210,6 +242,7 @@ in
   ##: Provision the mutable /opt/zscaler before the daemons.
   systemd.services.zscaler-provision = {
     description = "Provision /opt/zscaler from the Nix store";
+    path = with pkgs; [ coreutils util-linux dmidecode gawk findutils ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -224,6 +257,7 @@ in
     wants = [ "network-online.target" ];
     requires = [ "zscaler-provision.service" ];
     path = daemonPath;
+    environment = { SSL_CERT_FILE = caBundle; SSL_CERT_DIR = "/etc/ssl/certs"; };
     serviceConfig = {
       ExecStart = "${opt}/bin/zsaservice";
       Type = "simple";
@@ -240,6 +274,7 @@ in
     wants = [ "network-online.target" ];
     requires = [ "zscaler-provision.service" ];
     path = daemonPath;
+    environment = { SSL_CERT_FILE = caBundle; SSL_CERT_DIR = "/etc/ssl/certs"; };
     serviceConfig = {
       ExecStart = "${opt}/bin/zstunnel";
       Type = "simple";
