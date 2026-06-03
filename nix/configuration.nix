@@ -16,7 +16,7 @@ in
       ./configurations/flatpak.nix
       ./configurations/samba.nix
       ./configurations/misc.nix
-      ./configurations/zscaler.nix
+      self.inputs.zscaler-docker.nixosModules.zscaler
     ];
 
   home-manager = {
@@ -38,6 +38,11 @@ in
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
   services.printing.enable = true;
+
+  # Zscaler ZTNA transparent VPN (Docker-based). The module now lives in the
+  # standalone zscaler-docker repo and is imported above as
+  # self.inputs.zscaler-docker.nixosModules.zscaler. cloud/domain default to Nubank.
+  services.zscaler.enable = true;
 
   users.users.greg = {
     isNormalUser = true;

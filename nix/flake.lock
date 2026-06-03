@@ -186,7 +186,8 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-kernel": "nixpkgs-kernel",
         "nubank": "nubank",
-        "stable": "stable"
+        "stable": "stable",
+        "zscaler-docker": "zscaler-docker"
       }
     },
     "stable": {
@@ -203,6 +204,22 @@
         "ref": "nixos-25.11",
         "repo": "nixpkgs",
         "type": "github"
+      }
+    },
+    "zscaler-docker": {
+      "locked": {
+        "lastModified": 1780488455,
+        "narHash": "sha256-g92vh7sI0a1RegnUcUtmgylUv9kRTIMB8mtDBF6TAOU=",
+        "ref": "master",
+        "rev": "d3318c9d7f191323dcaf7600b669dcebb1ee9ba5",
+        "revCount": 2,
+        "type": "git",
+        "url": "ssh://git@github.com/nubank/zscaler-docker"
+      },
+      "original": {
+        "ref": "master",
+        "type": "git",
+        "url": "ssh://git@github.com/nubank/zscaler-docker"
       }
     }
   },

@@ -36,6 +36,11 @@
       url = "github:ericdallo/GlobalProtect-openconnect/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Zscaler-on-Docker, kept in a separate, Nubank-shareable repo so non-Nix
+    # Docker users can use it too. It exposes `nixosModules.zscaler`, which
+    # configuration.nix imports.
+    zscaler-docker.url = "git+ssh://git@github.com/nubank/zscaler-docker?ref=master";
   };
 
   outputs = { self, nixpkgs, home-manager, ... }:
