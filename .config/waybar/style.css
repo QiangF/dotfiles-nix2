@@ -46,6 +46,7 @@ window#waybar {
 #custom-drive.on { color: @green; }
 #custom-drive.off { color: @white; }
 #custom-vpn.off { color: @white; }
+#custom-vpn.connecting { color: @yellow; }
 #custom-vpn.on { color: @pink; }
 #custom-tailscale.off { color: @white; }
 #custom-tailscale.on { color: @cyan; }
